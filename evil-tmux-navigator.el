@@ -1,10 +1,10 @@
 ;;; evil-tmux-navigator.el --- Seamlessly navigate between Emacs and tmux
 
-;; Author:   Keith Smiley <keithbsmiley@gmail.com>
+;; Author:   Keith Smiley <keithbsmiley@gmail.com>, forked by Alex Birdsall <ambirdsall@gmail.com>
 ;; Created:  April 25 2014
 ;; Version:  0.1.5
 ;; Keywords: tmux, evil, vi, vim
-;; Package-Requires: ((evil "1.2.8"))
+;; Package-Requires: ((evil "1.2.8") (emacs "25.1"))
 
 ;;; Commentary:
 
@@ -91,9 +91,14 @@ evil-motion-state-map. Else, bind on evil-window-map."
        (tmux-select-pane direction)))))
 
 (defun tmux-select-pane (direction)
-  (shell-command-to-string
-   (concat "tmux select-pane -"
-           (tmux-direction direction))))
+  (let ((tmux-socket-var (seq-find
+                          (lambda (var) (string-prefix-p "TMUX=" var))
+                          (cdr (seq-find
+                                (lambda (config-property) (eq (car config-property) 'environment))
+                                (cadadr (current-frame-configuration)))))))
+    (if tmux-socket-var
+        (shell-command-to-string (concat tmux-socket-var " tmux select-pane -" (tmux-direction direction)))
+      (shell-command-to-string (concat "tmux select-pane -" (tmux-direction direction))))))
 
 (defun tmux-direction (direction)
   (upcase
